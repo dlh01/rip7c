@@ -1,0 +1,23 @@
+{
+  "name": "dlh01/rip7c",
+  "description": "This isn't finished yet.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+	{
+	  "name": "David Herrera",
+	  "email": "mail@dlh01.info"
+	}
+  ],
+  "require": {
+	"php": "^8.0",
+	"alleyinteractive/laminas-validator-extensions": "^2.0",
+	"php-ds/php-ds": "^1.4"
+  },
+  "require-dev": {
+	"phpunit/phpunit": "^10.0"
+  },
+  "config": {
+    "lock": false
+  }
+}
