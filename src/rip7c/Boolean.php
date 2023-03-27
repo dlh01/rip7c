@@ -14,7 +14,7 @@ namespace rip7c;
 
 interface Boolean
 {
-	public function isTrue(callable $then, $else);
+    public function isTrue(callable $then, $else);
 
-	public function isFalse(callable $then, $else);
+    public function isFalse(callable $then, $else);
 }

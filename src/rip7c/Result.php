@@ -36,6 +36,7 @@ final class Result implements Boolean
     {
         $cls = fn() => $value;
         $rst = new self(new Type(['type' => 'callable']), $cls);
+
         return new self($test, $rst->isTrue($cls, $cls));
     }
 
