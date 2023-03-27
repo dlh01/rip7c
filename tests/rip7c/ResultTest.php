@@ -21,13 +21,13 @@ final class ResultTest extends \PHPUnit\Framework\TestCase
     {
         $expected = 'foo';
         $result = Result::create(new AlwaysValid(), 'bar');
-        $this->assertSame($expected, $result->isTrue(fn() => $expected, 'baz'));
+        $this->assertSame($expected, $result->isTrue(fn () => $expected, 'baz'));
     }
 
     public function testIsFalse()
     {
         $expected = 'foo';
         $result = Result::create(new Not(new AlwaysValid(), 'test'), 'bar');
-        $this->assertSame($expected, $result->isTrue(fn() => 'baz', $expected));
+        $this->assertSame($expected, $result->isTrue(fn () => 'baz', $expected));
     }
 }

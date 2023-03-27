@@ -34,7 +34,7 @@ final class Result implements Boolean
 
     public static function create(ValidatorInterface $test, $value): Result
     {
-        $cls = fn() => $value;
+        $cls = fn () => $value;
         $rst = new self(new Type(['type' => 'callable']), $cls);
 
         return new self($test, $rst->isTrue($cls, $cls));
