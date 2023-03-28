@@ -2,6 +2,7 @@
 <ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="rip7c" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
     <description>The coding standard for rip7c.</description>
 
+    <file>examples/</file>
     <file>src/</file>
     <file>tests/</file>
     <exclude-pattern>vendor/</exclude-pattern>
