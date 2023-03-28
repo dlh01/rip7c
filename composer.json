@@ -15,6 +15,7 @@
   "require": {
     "php": "^8.0",
     "alleyinteractive/laminas-validator-extensions": "^2.0",
+    "alleyinteractive/traverse-reshape": "^2.0",
     "php-ds/php-ds": "^1.4"
   },
   "require-dev": {
