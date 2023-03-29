@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace rip7c;
 
-class Max implements Integer
+final class Max implements Integer
 {
     /**
      * @var Integer[]

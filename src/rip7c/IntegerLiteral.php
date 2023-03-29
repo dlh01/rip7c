@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace rip7c;
 
-class IntegerLiteral implements Integer
+final class IntegerLiteral implements Integer
 {
     public function __construct(private int $origin)
     {

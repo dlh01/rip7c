@@ -26,19 +26,19 @@ final class Result implements Boolean
     private $value;
 
     public function __construct(
-        ValidatorInterface $test,
         callable $value,
+        ValidatorInterface $test,
     ) {
         $this->test  = $test;
         $this->value = $value;
     }
 
-    public static function create(ValidatorInterface $test, $value): Result
+    public static function of($value, ValidatorInterface $test): Result
     {
         $cls = fn () => $value;
-        $rst = new self(new Type(['type' => 'callable']), $cls);
+        $rst = new self($cls, new Type(['type' => 'callable']));
 
-        return new self($test, $rst->isTrue($cls, $cls));
+        return new self($rst->isTrue($cls, $cls), $test);
     }
 
     public function isTrue(callable $then, $else)

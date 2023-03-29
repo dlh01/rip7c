@@ -20,33 +20,35 @@ use rip7c\Max;
 use rip7c\MaxAge;
 use rip7c\Result;
 
-require_once dirname(__DIR__) . '/vendor/autoload.php';
+require_once \dirname(__DIR__) . '/vendor/autoload.php';
 
 $origin_cache_control = 's-maxage=86400, max-age=86400, must-revalidate, no-store';
 $origin_age           = 1138;
 
-$cc_not_empty = Result::create(
-    new FastFailValidatorChain([
-        new Type(['type' => 'string']),
-        new Comparison(['operator' => '!==', 'compared' => '']),
-    ]),
-    $origin_cache_control,
-);
-$age_numeric  = Result::create(new Type(['type' => 'numeric']), $origin_age);
-
 $ttl = new Max(
+    new IntegerLiteral(3600),
     new Difference(
-        $cc_not_empty->isTrue(
+        Result::of(
+            $origin_cache_control,
+            new FastFailValidatorChain([
+                new Type(['type' => 'string']),
+                new Comparison(['operator' => '!==', 'compared' => '']),
+            ])
+        )->isTrue(
             fn () => new MaxAge($origin_cache_control),
             new IntegerLiteral(0),
         ),
-        $age_numeric->isTrue(
-            fn () => new IntegerLiteral($origin_age),
-            new IntegerLiteral(0),
-        )
+        new IntegerLiteral(
+            Result::of(
+                $origin_age,
+                new Type(['type' => 'numeric']),
+            )->isTrue(
+                fn () => $origin_age,
+                0,
+            ),
+        ),
     ),
-    new IntegerLiteral(3600),
 );
 
-echo "Cache TTL is " . $ttl->integer() . PHP_EOL;
+echo "Cache TTL is " . $ttl->integer() . \PHP_EOL; // "Cache TTL is 85262"
 exit;

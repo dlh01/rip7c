@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace rip7c;
 
-class Difference implements Integer
+final class Difference implements Integer
 {
     /**
      * @var Integer[]
@@ -28,7 +28,7 @@ class Difference implements Integer
     public function integer(): int
     {
         return array_reduce(
-            array_slice($this->integers, 1),
+            \array_slice($this->integers, 1),
             fn (int $carry, Integer $value) => $carry - $value->integer(),
             $this->integers[0]->integer(),
         );
