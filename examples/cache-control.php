@@ -50,5 +50,11 @@ $ttl = new Max(
     ),
 );
 
-echo "Cache TTL is " . $ttl->integer() . \PHP_EOL; // "Cache TTL is 85262"
+$out = new Concat(
+    new StringLiteral('Cache TTL is '),
+    new IntegerPrinted($ttl),
+    new StringLiteral(\PHP_EOL),
+);
+$out->print(STDOUT);  // "Cache TTL is 85262"
+
 exit;
