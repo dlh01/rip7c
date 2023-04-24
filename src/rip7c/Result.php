@@ -38,16 +38,17 @@ final class Result implements Boolean
         $cls = fn () => $value;
         $rst = new self($cls, new Type(['type' => 'callable']));
 
-        return new self($rst->isTrue($cls, $cls), $test);
+        return new self($rst->isTrue($value, fn () => $cls), $test);
     }
 
-    public function isTrue(callable $then, $else)
+    public function isTrue($then, $else)
     {
-        return $this->test->isValid(($this->value)()) ? $then() : $else;
+        $out = $this->test->isValid(($this->value)()) ? $then : $else;
+        return is_callable($out) ? $out() : $out;
     }
 
-    public function isFalse(callable $then, $else)
+    public function isFalse($then, $else)
     {
-        return $this->test->isValid(($this->value)()) ? $else : $then();
+        return $this->isTrue($else, $then);
     }
 }

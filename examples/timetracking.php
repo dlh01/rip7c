@@ -11,6 +11,7 @@
 
 declare(strict_types=1);
 
+use Alley\Validator\Comparison;
 use Alley\Validator\Type;
 use rip7c\Result;
 
@@ -18,7 +19,12 @@ require_once \dirname(__DIR__) . '/vendor/autoload.php';
 
 date_default_timezone_set('America/New_York');
 
-$sprintStart = new DateTimeImmutable('last wednesday');
+$now         = new DateTimeImmutable('now');
+$isWednesday = Result::of(
+    $now->format('l'),
+    new Comparison(['operator' => '===', 'compared' => 'Wednesday'])
+);
+$sprintStart = $isWednesday->isTrue(fn() => $now, new DateTimeImmutable('last wednesday'));
 $filename    = $argv[1];
 $file        = fopen($filename, 'r');
 
@@ -38,26 +44,30 @@ $sums        = [];
 $commitments = ['TOTAL' => (32 * 3600)];
 
 while (($line = fgets($file)) !== false) {
+    $line   = preg_replace('/ ([AP]M)/', '\1', $line);
     $pieces = explode(' ', $line);
     $pieces = array_values(array_filter($pieces, fn($p) => $p !== '-' && $p !== $date));
     $pieces = array_map('trim', $pieces);
     $rows[] = $pieces;
 }
 
+echo ">>> LOGS";
+echo "\n";
+
 while (($row = current($rows)) !== false) {
     $date   = '.' === $row[0] ? $date : $row[0];
-    $type   = '.' === $row[1] ? $type : $row[1];
+    $type   = strtolower('.' === $row[1] ? $type : $row[1]);
     $client = '.' === $row[2] ? $client : $row[2];
 
     if ($date >= $sprintStart->format('Y-m-d')) {
-        if ('COMMIT' === $type) {
+        if (str_starts_with($type, 'c')) {
             preg_match('/^\d+/', $row[3], $match);
 
             $commitments[$client] ??= 0;
             $commitments[$client] += (int)$match[0] * 3600;
         }
 
-        if ('COMMIT' !== $type) {
+        if (!str_starts_with($type, 'c')) {
             $sums[$client] ??= 0;
 
             $start = $row[3];
@@ -67,7 +77,7 @@ while (($row = current($rows)) !== false) {
                 $hours    = floor($seconds / 3600);
                 $minutes  = floor(($seconds / 60) % 60);
                 $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
-                echo implode(' | ', [$date, $type, $client, ' - ', ' - ', $duration]);
+                echo implode(' | ', array_map(fn($s) => str_pad($s, 7), [$date, $type, $client, '-', '-', $duration]));
                 $sums[$client] += $seconds;
             }
 
@@ -103,8 +113,8 @@ while (($row = current($rows)) !== false) {
                     prev($rows);
                 }
 
-                $start = rtrim($start, 'm') . 'm';
-                $stop  = rtrim($stop, 'm') . 'm';
+                $start = rtrim(strtolower($start), 'm') . 'm';
+                $stop  = rtrim(strtolower($stop), 'm') . 'm';
 
                 $seconds = strtotime($stop) - strtotime($start);
                 if (str_ends_with($start, 'pm') && str_ends_with($stop, 'am')) {
@@ -114,7 +124,10 @@ while (($row = current($rows)) !== false) {
                 $minutes  = floor(($seconds / 60) % 60);
                 $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
-                echo implode(' | ', [$date, $type, $client, $start, $stop, $duration]);
+                echo implode(
+                    ' | ',
+                    array_map(fn($s) => str_pad($s, 7), [$date, $type, $client, $start, $stop, $duration])
+                );
 
                 $sums[$client] += $seconds;
             }
@@ -127,7 +140,7 @@ while (($row = current($rows)) !== false) {
 }
 
 echo "\n";
-echo "TRACKED:";
+echo ">>> TRACKED";
 echo "\n";
 $sums['TOTAL'] = array_sum($sums);
 foreach ($sums as $client => $seconds) {
@@ -140,7 +153,7 @@ foreach ($sums as $client => $seconds) {
 }
 echo "\n";
 
-echo "COMMITMENTS:";
+echo ">>> COMMITMENTS";
 echo "\n";
 foreach ($commitments as $client => $seconds) {
     $hours    = floor($seconds / 3600);
@@ -152,22 +165,32 @@ foreach ($commitments as $client => $seconds) {
 }
 echo "\n";
 
-echo "REMAINING:";
+echo ">>> REMAINING";
 echo "\n";
 foreach ($commitments as $client => $seconds) {
     $remaining = $seconds - ($sums[$client] ?? 0);
-    $hours     = floor($remaining / 3600);
-    $minutes   = floor(($remaining / 60) % 60);
-    $duration  = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
+    $hours     = floor(abs($remaining) / 3600);
+    $minutes   = floor((abs($remaining) / 60) % 60);
+    $duration  = ($remaining < 0 ? '-' : '') . $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
     echo "{$duration} {$client}";
     echo "\n";
 }
 echo "\n";
 
-echo "CAPACITY:";
+$secondsAvailable = $sprintStart->add(new DateInterval('P7D'))->getTimestamp() - time();
+$daysAvailable = ceil($secondsAvailable / 86400);
+$secondsNeeded = $commitments['TOTAL'] - $sums['TOTAL'];
+$secondsPerDay = $secondsNeeded / $daysAvailable;
+$hours    = floor($secondsPerDay / 3600);
+$minutes  = floor(round($secondsPerDay / 60) % 60);
+$duration = $hours . ":" . str_pad((string) $minutes, 2, "0", STR_PAD_LEFT);
+
+echo ">>> CAPACITY";
 echo "\n";
-echo ceil(($sprintStart->add(new DateInterval('P7D'))->getTimestamp() - time()) / 86400) . ' days';
+echo $daysAvailable . ' days';
+echo "\n";
+echo ($duration) . ' per day';
 echo "\n";
 
 fclose($file);
