@@ -56,18 +56,18 @@ echo "\n";
 
 while (($row = current($rows)) !== false) {
     $date   = '.' === $row[0] ? $date : $row[0];
-    $type   = strtolower('.' === $row[1] ? $type : $row[1]);
+    $type   = strtoupper('.' === $row[1] ? $type : $row[1]);
     $client = '.' === $row[2] ? $client : $row[2];
 
     if ($date >= $sprintStart->format('Y-m-d')) {
-        if (str_starts_with($type, 'c')) {
+        if ('COMMIT' === $type) {
             preg_match('/^\d+/', $row[3], $match);
 
             $commitments[$client] ??= 0;
             $commitments[$client] += (int)$match[0] * 3600;
         }
 
-        if (!str_starts_with($type, 'c')) {
+        if ('COMMIT' !== $type) {
             $sums[$client] ??= 0;
 
             $start = $row[3];
@@ -77,7 +77,7 @@ while (($row = current($rows)) !== false) {
                 $hours    = floor($seconds / 3600);
                 $minutes  = floor(($seconds / 60) % 60);
                 $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
-                echo implode(' | ', array_map(fn($s) => str_pad($s, 7), [$date, $type, $client, '-', '-', $duration]));
+                echo implode(' | ', array_map(fn($s) => str_pad($s, 10), [$date, $type, $client, '-', '-', $duration]));
                 $sums[$client] += $seconds;
             }
 
@@ -126,7 +126,7 @@ while (($row = current($rows)) !== false) {
 
                 echo implode(
                     ' | ',
-                    array_map(fn($s) => str_pad($s, 7), [$date, $type, $client, $start, $stop, $duration])
+                    array_map(fn($s) => str_pad($s, 10), [$date, $type, $client, $start, $stop, $duration])
                 );
 
                 $sums[$client] += $seconds;
