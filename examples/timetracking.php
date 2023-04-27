@@ -51,6 +51,7 @@ $commitments = ['TOTAL' => (32 * 3600)];
 
 while (($line = fgets($file)) !== false) {
     $line = preg_replace('/ ([AP]M)/', '\1', $line);
+    $line = preg_replace('/^\.\. /', '. . ', $line);
     $line = preg_replace('/^\.\.\. /', '. . . ', $line);
     $pieces = explode(' ', $line);
     $pieces = array_values(array_filter($pieces, fn($p) => $p !== '-' && $p !== $date));
