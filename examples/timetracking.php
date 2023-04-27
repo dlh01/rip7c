@@ -19,32 +19,39 @@ require_once \dirname(__DIR__) . '/vendor/autoload.php';
 
 date_default_timezone_set('America/New_York');
 
-$now         = new DateTimeImmutable('now');
+$now = new DateTimeImmutable('now');
 $isWednesday = Result::of(
     $now->format('l'),
     new Comparison(['operator' => '===', 'compared' => 'Wednesday'])
 );
 $sprintStart = $isWednesday->isTrue(fn() => $now, new DateTimeImmutable('last wednesday'));
-$filename    = $argv[1];
-$file        = fopen($filename, 'r');
+$filename = $argv[1];
+$file = fopen($filename, 'r');
 
 $opened = Result::of($file, new Type(['type' => 'resource']));
 $opened->isFalse(fn() => throw new Exception("File at {$filename} does not exist"), '');
 
-$date     = null;
-$type     = null;
-$client   = null;
-$start    = null;
-$stop     = null;
-$duration = null;
-$seconds  = 0;;
+$backwards = abs((int) ($argv[2] ?? 0));
+if ($backwards > 0) {
+    $sprintStart = $sprintStart->sub(new DateInterval("P{$backwards}W"));
+    $now = $sprintStart->add(new DateInterval('P1W'));
+}
 
-$rows        = [];
-$sums        = [];
+$date = null;
+$type = null;
+$client = null;
+$start = null;
+$stop = null;
+$duration = null;
+$seconds = 0;;
+
+$rows = [];
+$sums = [];
 $commitments = ['TOTAL' => (32 * 3600)];
 
 while (($line = fgets($file)) !== false) {
-    $line   = preg_replace('/ ([AP]M)/', '\1', $line);
+    $line = preg_replace('/ ([AP]M)/', '\1', $line);
+    $line = preg_replace('/^\.\.\. /', '. . . ', $line);
     $pieces = explode(' ', $line);
     $pieces = array_values(array_filter($pieces, fn($p) => $p !== '-' && $p !== $date));
     $pieces = array_map('trim', $pieces);
@@ -55,9 +62,9 @@ echo ">>> LOGS";
 echo "\n";
 
 while (($row = current($rows)) !== false) {
-    $date   = '.' === $row[0] ? $date : $row[0];
-    $type   = strtoupper('.' === $row[1] ? $type : $row[1]);
-    $client = '.' === $row[2] ? $client : $row[2];
+    $date = '.' === $row[0] ? $date : $row[0];
+    $type = strtoupper('.' === $row[1] ? $type : $row[1]);
+    $client = strtoupper('.' === $row[2] ? $client : $row[2]);
 
     if ($date >= $sprintStart->format('Y-m-d')) {
         if ('COMMIT' === $type) {
@@ -73,15 +80,15 @@ while (($row = current($rows)) !== false) {
             $start = $row[3];
 
             if (str_ends_with($start, 'h')) {
-                $seconds  = ((float)rtrim($start, 'h')) * 3600;
-                $hours    = floor($seconds / 3600);
-                $minutes  = floor(($seconds / 60) % 60);
+                $seconds = ((float)rtrim($start, 'h')) * 3600;
+                $hours = floor($seconds / 3600);
+                $minutes = floor(($seconds / 60) % 60);
                 $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
                 echo implode(' | ', array_map(fn($s) => str_pad($s, 10), [$date, $type, $client, '-', '-', $duration]));
                 $sums[$client] += $seconds;
             }
 
-            if ( ! str_ends_with($start, 'h')) {
+            if (!str_ends_with($start, 'h')) {
                 $prev = 0;
                 while ($start === '.') {
                     prev($rows);
@@ -107,21 +114,21 @@ while (($row = current($rows)) !== false) {
                     $prev--;
                 }
 
-                if ($stop === '..') {
+                if ($stop === '>') {
                     next($rows);
                     $stop = current($rows)[3];
                     prev($rows);
                 }
 
                 $start = rtrim(strtolower($start), 'm') . 'm';
-                $stop  = rtrim(strtolower($stop), 'm') . 'm';
+                $stop = rtrim(strtolower($stop), 'm') . 'm';
 
                 $seconds = strtotime($stop) - strtotime($start);
-                if (str_ends_with($start, 'pm') && str_ends_with($stop, 'am')) {
+                if (str_ends_with(strtolower($start), 'pm') && str_ends_with(strtolower($stop), 'am')) {
                     $seconds += 86400;
                 }
-                $hours    = floor($seconds / 3600);
-                $minutes  = floor(($seconds / 60) % 60);
+                $hours = floor($seconds / 3600);
+                $minutes = floor(($seconds / 60) % 60);
                 $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
                 echo implode(
@@ -144,8 +151,8 @@ echo ">>> TRACKED";
 echo "\n";
 $sums['TOTAL'] = array_sum($sums);
 foreach ($sums as $client => $seconds) {
-    $hours    = floor($seconds / 3600);
-    $minutes  = floor(($seconds / 60) % 60);
+    $hours = floor($seconds / 3600);
+    $minutes = floor(($seconds / 60) % 60);
     $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
     echo "{$duration} {$client}";
@@ -156,8 +163,8 @@ echo "\n";
 echo ">>> COMMITMENTS";
 echo "\n";
 foreach ($commitments as $client => $seconds) {
-    $hours    = floor($seconds / 3600);
-    $minutes  = floor(($seconds / 60) % 60);
+    $hours = floor($seconds / 3600);
+    $minutes = floor(($seconds / 60) % 60);
     $duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
     echo "{$duration} {$client}";
@@ -169,9 +176,9 @@ echo ">>> REMAINING";
 echo "\n";
 foreach ($commitments as $client => $seconds) {
     $remaining = $seconds - ($sums[$client] ?? 0);
-    $hours     = floor(abs($remaining) / 3600);
-    $minutes   = floor((abs($remaining) / 60) % 60);
-    $duration  = ($remaining < 0 ? '-' : '') . $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
+    $hours = floor(abs($remaining) / 3600);
+    $minutes = floor((abs($remaining) / 60) % 60);
+    $duration = ($remaining < 0 ? '-' : '') . $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
     echo "{$duration} {$client}";
     echo "\n";
@@ -181,10 +188,10 @@ echo "\n";
 $secondsAvailable = $sprintStart->add(new DateInterval('P7D'))->getTimestamp() - time();
 $daysAvailable = ceil($secondsAvailable / 86400);
 $secondsNeeded = $commitments['TOTAL'] - $sums['TOTAL'];
-$secondsPerDay = $secondsNeeded / $daysAvailable;
-$hours    = floor($secondsPerDay / 3600);
-$minutes  = floor(round($secondsPerDay / 60) % 60);
-$duration = $hours . ":" . str_pad((string) $minutes, 2, "0", STR_PAD_LEFT);
+$secondsPerDay = $daysAvailable ? $secondsNeeded / $daysAvailable : 0;
+$hours = floor($secondsPerDay / 3600);
+$minutes = floor(round($secondsPerDay / 60) % 60);
+$duration = $hours . ":" . str_pad((string)$minutes, 2, "0", STR_PAD_LEFT);
 
 echo ">>> CAPACITY";
 echo "\n";
